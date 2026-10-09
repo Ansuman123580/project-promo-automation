@@ -2,8 +2,12 @@ name: Deploy next public project to Vercel
 
 on:
   schedule:
-    - cron: "0 2 * * *" # 07:30 UTC = 13:00 IST
+    - cron: "0 3 * * *" # 08:30 IST
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/deploy-project.yml"
 
 permissions:
   contents: read
