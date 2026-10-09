@@ -51,7 +51,7 @@ jobs:
               exit 0
             fi
             echo "Skipping $full_name: branch $branch has no remote ref"
-          done < <(node --input-type=module -e "for (const r of JSON.parse(require('fs').readFileSync('/tmp/candidates.json','utf8'))) console.log([r.name,r.clone_url,r.full_name,r.default_branch].join('\t'))")
+          done < <(node --input-type=module -e "import fs from 'node:fs'; for (const r of JSON.parse(fs.readFileSync('/tmp/candidates.json','utf8'))) console.log([r.name,r.clone_url,r.full_name,r.default_branch].join('\t'))")
           echo "No repository with an existing default branch was found."
           exit 1
       - name: Check out selected project
