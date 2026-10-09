@@ -1,0 +1,21 @@
+name: Approval guard
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  issues: write
+
+jobs:
+  guard:
+    if: github.event.label.name == 'approved' && contains(github.event.issue.labels.*.name, 'promo-draft')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm approval without publishing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$GH_REPO" --body "Human approval recorded. This workflow does not publish to social platforms. Please copy the final reviewed draft and publish it manually."
