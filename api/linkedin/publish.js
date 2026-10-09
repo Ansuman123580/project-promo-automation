@@ -106,7 +106,7 @@ export default async function handler(req, res) {
       "#WebDevelopment #BuildInPublic #FrontendDevelopment"
     ].join("\n");
 
-    const version = process.env.LINKEDIN_VERSION;
+    const version = process.env.LINKEDIN_VERSION || "202610";
     if (!/^\d{6}$/.test(version || "")) return res.status(503).json({ error: "Set LINKEDIN_VERSION as a YYYYMM value in Vercel." });
     const response = await fetch(API, {
       method: "POST",
