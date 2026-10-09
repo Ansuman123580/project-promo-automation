@@ -12,6 +12,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/test-linkedin-publish.yml"
+      - "api/linkedin/publish.js"
 
 permissions:
   contents: read
