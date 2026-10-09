@@ -36,13 +36,14 @@ jobs:
           if (!candidates.length) throw new Error('No eligible public repositories found');
           const day = Math.floor(Date.now() / 86400000);
           const repo = candidates[day % candidates.length];
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `name=${repo.name}\nurl=${repo.clone_url}\nfull_name=${repo.full_name}\n`);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `name=${repo.name}\nurl=${repo.clone_url}\nfull_name=${repo.full_name}\nbranch=${repo.default_branch}\n`);
           console.log(`Selected ${repo.full_name}`);
           NODE
       - name: Check out selected project
         uses: actions/checkout@v4
         with:
           repository: ${{ steps.pick.outputs.full_name }}
+          ref: ${{ steps.pick.outputs.branch }}
           token: ${{ secrets.GITHUB_TOKEN }}
           path: project
       - name: Deploy project to Vercel
