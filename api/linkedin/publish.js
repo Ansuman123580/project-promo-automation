@@ -90,13 +90,7 @@ export default async function handler(req, res) {
     if (!chosen) return res.status(200).json({ ok: true, published: false, message: "No unpublished repository with a reachable live demo URL found. Add a working URL to the repository homepage or README." });
 
     /* selected repository and its reachable demo are now verified */
-    let unusedReadme = "";
-    try {
-      const r = await github(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(chosen.name)}/readme`);
-      if (r.content) readme = Buffer.from(r.content, "base64").toString("utf8");
-    } catch {}
     const heading = (readme.match(/^#\s+(.+)$/m) || [])[1] || chosen.name;
-    const demo = demoUrl(chosen, readme);
     const description = chosen.description || "A web development project I have been building.";
     const text = [
       `Building and sharing ${heading} — ${description}`,
