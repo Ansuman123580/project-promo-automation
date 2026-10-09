@@ -104,14 +104,29 @@ export default async function handler(req, res) {
       return res.status(502).send("LinkedIn token exchange failed. Check the app credentials and redirect URL, then try again.");
     }
 
+    const profileResponse = await fetch("https://api.linkedin.com/v2/userinfo", {
+      headers: { Authorization: `Bearer ${tokenData.access_token}`, Accept: "application/json" }
+    });
+    const profile = await profileResponse.json();
+    if (!profileResponse.ok || typeof profile.sub !== "string" || !profile.sub) {
+      console.error("LinkedIn userinfo lookup failed with status", profileResponse.status);
+      return res.status(502).send("LinkedIn authorization succeeded, but profile lookup failed. Reconnect and try again.");
+    }
+
     const encrypted = encrypt(JSON.stringify({
       access_token: tokenData.access_token,
       expires_in: tokenData.expires_in,
-      saved_at: new Date().toISOString()
+      saved_at: new Date().toISOString(),
+      member: {
+        id: profile.sub,
+        urn: `urn:li:person:${profile.sub}`,
+        name: typeof profile.name === "string" ? profile.name : null,
+        picture: typeof profile.picture === "string" ? profile.picture : null
+      }
     }), process.env.LINKEDIN_TOKEN_ENCRYPTION_KEY);
 
     await saveEncryptedToken(encrypted);
-    return res.status(200).send(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>LinkedIn connected</title><body style="font:16px system-ui;max-width:640px;margin:12vh auto;padding:24px;background:#0b1020;color:#f5f7ff"><h1>LinkedIn authorization successful</h1><p>Your access token was encrypted before storage. It is not displayed on this page.</p><p>Authorization is connected, but publishing is not enabled yet. Posts will remain drafts until the approval-gated publishing workflow is implemented and tested.</p></body></html>`);
+    return res.status(200).send(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>LinkedIn connected</title><body style="font:16px system-ui;max-width:640px;margin:12vh auto;padding:24px;background:#0b1020;color:#f5f7ff"><h1>LinkedIn authorization successful</h1><p>Your access token and member profile reference were encrypted before storage. No token or member identifier is displayed on this page.</p><p>LinkedIn identity is connected. Automatic publishing still needs its publishing workflow implemented and tested before it can post.</p></body></html>`);
   } catch (err) {
     console.error("LinkedIn OAuth callback error:", err instanceof Error ? err.message : "unknown error");
     return res.status(500).send("Could not securely save the LinkedIn authorization. Check Vercel and Upstash configuration, then retry.");
