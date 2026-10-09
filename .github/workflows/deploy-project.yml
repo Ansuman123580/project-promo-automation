@@ -94,3 +94,19 @@ jobs:
           echo "### Deployment result" >> "$GITHUB_STEP_SUMMARY"
           echo "- Repository: $REPOSITORY_NAME" >> "$GITHUB_STEP_SUMMARY"
           echo "- Live URL: $URL" >> "$GITHUB_STEP_SUMMARY"
+          # Public project demos must be accessible to visitors without Vercel login.
+          # Disable Vercel Authentication for the deployed project using the Vercel API.
+          PROJECT_JSON="$(curl -fsSL -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v9/projects/$PROJECT_NAME?slug=ansuman123580s-projects")"
+          PROJECT_ID="$(node -e 'const p=JSON.parse(process.argv[1]); process.stdout.write(p.id || "")' "$PROJECT_JSON")"
+          if [ -z "$PROJECT_ID" ]; then echo "::error::Could not resolve deployed Vercel project ID"; exit 1; fi
+          curl -fsSL -X PATCH "https://api.vercel.com/v9/projects/$PROJECT_ID?slug=ansuman123580s-projects" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" -H "Content-Type: application/json" \
+            --data '{"ssoProtection":null}' >/dev/null
+          echo "Disabled Vercel Authentication for public demo access."
+          sleep 3
+          HTTP_CODE="$(curl -sSL -o /tmp/public-check.html -w '%{http_code}' "$URL")"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
+            echo "::error::Deployment is not publicly reachable (HTTP $HTTP_CODE)."
+            exit 1
+          fi
+          echo "- Public access check: HTTP $HTTP_CODE" >> "$GITHUB_STEP_SUMMARY"
