@@ -74,8 +74,9 @@ export default async function handler(req, res) {
         const r = await github(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/readme`);
         if (r.content) candidateReadme = Buffer.from(r.content, "base64").toString("utf8");
       } catch {}
-      const candidateDemo = demoUrl(repo, candidateReadme);
-      if (!candidateDemo) continue;
+      // If no URL is documented, try the predictable Vercel project alias created by deploy-project.yml.
+      // The URL is never published unless the health check below succeeds.
+      const candidateDemo = demoUrl(repo, candidateReadme) || `https://${repo.name.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "")}.vercel.app`;
       try {
         const check = await fetch(candidateDemo, { method: "GET", redirect: "follow", signal: AbortSignal.timeout(8000) });
         if (!check.ok || !/^https?:$/.test(new URL(check.url).protocol)) continue;
