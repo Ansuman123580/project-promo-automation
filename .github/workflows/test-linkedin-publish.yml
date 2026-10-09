@@ -1,0 +1,39 @@
+name: Test LinkedIn publisher
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish one real public LinkedIn post now"
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  test-publisher:
+    if: ${{ inputs.publish == true }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call protected publisher
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::Add CRON_SECRET in GitHub repository Actions secrets first."
+            exit 1
+          fi
+          status=$(curl --silent --show-error --output response.json --write-out "%{http_code}" \
+            --request POST \
+            --header "Authorization: Bearer ${CRON_SECRET}" \
+            --header "Content-Type: application/json" \
+            "https://project-promo-automation.vercel.app/api/linkedin/publish")
+          cat response.json
+          echo
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "::error::Publisher returned HTTP $status"
+            exit 1
+          fi
