@@ -1,4 +1,5 @@
 name: Deploy next public project to Vercel
+# Retest after user refreshed Vercel token with All Projects scope
 
 on:
   schedule:
