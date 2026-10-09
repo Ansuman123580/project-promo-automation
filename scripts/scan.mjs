@@ -18,6 +18,19 @@ function clean(text = '') {
   return text.replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim();
 }
 
+function findDemoUrl(repo, readme) {
+  const homepage = typeof repo.homepage === 'string' ? repo.homepage.trim() : '';
+  if (/^https?:\\/\\//i.test(homepage) && !/localhost|127\\.0\\.0\\.1/i.test(homepage)) return homepage;
+
+  const markdownLinks = [...readme.matchAll(/\\[[^\\]]*(?:live demo|demo|website|visit|preview)[^\\]]*\\]\\((https?:\\/\\/[^)]+)\\)/ig)].map(m => m[1]);
+  const labelledUrls = [...readme.matchAll(/(?:live demo|demo url|website|deployed at|preview)\\s*[:—-]\\s*(https?:\\/\\/[^\\s)]+)/ig)].map(m => m[1]);
+  const candidates = [...labelledUrls, ...markdownLinks].filter(url =>
+    /^https?:\\/\\//i.test(url) &&
+    !/localhost|127\\.0\\.0\\.1|github\\.com\\/[^/]+\\/[^/]+(?:\\/|$)/i.test(url)
+  );
+  return candidates[0] || null;
+}
+
 function makeDraft(repo, readme) {
   const description = repo.description || 'A project I have been building and improving.';
   const heading = (readme.match(/^#\s+(.+)$/m) || [])[1] || repo.name;
@@ -25,7 +38,7 @@ function makeDraft(repo, readme) {
   const bullets = sections.length
     ? sections.slice(0, 3).map(s => `- ${s}`).join('\n')
     : '- Project structure and implementation\n- A practical, hands-on build\n- Ongoing improvements';
-  const demo = repo.homepage && /^https?:\/\//i.test(repo.homepage) ? repo.homepage : '[Add a verified live demo URL if available]';
+  const demo = findDemoUrl(repo, readme);
   return `I’ve been building ${heading} — ${description}
 
 A few things this project explores:
@@ -34,7 +47,7 @@ ${bullets}
 I’m sharing more of my web development work, experiments, and lessons as I build.
 
 🔗 Repository: ${repo.html_url}
-🌐 Live demo: ${demo}
+🌐 Live demo: ${demo || 'Not deployed yet — add the deployed URL to the repository About → Website field or README before publishing.'}
 
 If you’re working on a website or digital product and need a developer, feel free to connect.
 
@@ -42,7 +55,7 @@ If you’re working on a website or digital product and need a developer, feel f
 
 ---
 
-**Before publishing:** verify every claim, add a real screenshot if available, replace any placeholder demo URL, and tailor the CTA to the project.`;
+**Before publishing:** verify every claim and link, add a real screenshot if available, and tailor the CTA to the project. If no deployed URL is found, the draft will clearly say so rather than inventing a link.`;
 }
 
 async function main() {
@@ -94,7 +107,7 @@ async function main() {
     '',
     '### Human review checklist',
     '- [ ] Check that all statements match the actual project',
-    '- [ ] Verify the live demo and repository links',
+    '- [ ] Verify the live demo and repository links (if no demo URL is found, deploy the project and add its URL to the repository About → Website field or README)',
     '- [ ] Add/verify a project screenshot',
     '- [ ] Edit the draft to sound like me',
     '- [ ] Manually publish the approved text on LinkedIn or another platform',
