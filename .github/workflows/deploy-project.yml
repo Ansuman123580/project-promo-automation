@@ -1,4 +1,4 @@
-name: Deploy next public project to Vercel
+name: Deploy next public project to Vercel # token refresh verification
 
 on:
   schedule:
