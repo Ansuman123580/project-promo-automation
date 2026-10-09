@@ -29,7 +29,7 @@ export default function handler(req, res) {
   authorize.searchParams.set("client_id", clientId);
   authorize.searchParams.set("redirect_uri", redirectUri);
   authorize.searchParams.set("state", state);
-  authorize.searchParams.set("scope", "w_member_social");
+  authorize.searchParams.set("scope", "openid profile email w_member_social");
 
   return res.redirect(302, authorize.toString());
 }
