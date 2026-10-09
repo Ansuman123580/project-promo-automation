@@ -1,0 +1,31 @@
+name: Daily project promo draft
+
+on:
+  schedule:
+    - cron: '30 3 * * *' # 09:00 IST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: daily-project-promo-draft
+  cancel-in-progress: false
+
+jobs:
+  create-draft:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out automation
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Scan public repositories and create one draft
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_USERNAME: Ansuman123580
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/scan.mjs
