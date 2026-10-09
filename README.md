@@ -1,39 +1,58 @@
-# GitHub Project Promotion Automation (MVP)
+# GitHub Project Promotion Automation
 
-A free GitHub Actions workflow that scans **public, non-fork repositories** for `Ansuman123580` and opens one copy-ready promotion draft per day as a GitHub Issue. Every draft is marked `needs-approval`. It does **not** publish automatically; manual human review and publishing are mandatory in this MVP.
+This repository contains two separate automations:
 
-## What it does
+1. **GitHub Actions draft queue** — scans public repositories and creates a reviewable draft issue daily at 09:00 IST. This workflow does not publish to social media.
+2. **LinkedIn scheduled publisher** — a Vercel serverless endpoint intended to publish at most one eligible public repository per day at 09:30 IST after LinkedIn OAuth and all required Vercel environment variables are configured.
 
-- Runs daily at 09:00 India Standard Time (03:30 UTC), or manually via Actions → Daily project promo draft → Run workflow.
-- Reads public repository metadata and tries to read its README.
-- Creates one `Promo draft: owner/repo` issue with labels `promo-draft` and `needs-approval`.
-- Avoids creating another issue for a repository that already has a promo-draft issue, including closed issues.
-- Adds a review checklist and clearly marks the text as unpublished.
-- When you apply the `approved` label, a guard workflow comments that approval is recorded; it does not publish anything.
+## LinkedIn publishing status and safety
 
-## Setup
+The publisher is implemented in `api/linkedin/publish.js` and scheduled in `vercel.json`. Its presence in GitHub does not prove that Vercel registered the cron or that LinkedIn accepted a post. Confirm Vercel deployment status and function logs before treating publishing as operational.
 
-1. This repository is intended to be a dedicated public automation repo; the MVP itself does not need a dashboard.
-2. Confirm the files `.github/workflows/` and `scripts/` are in the repository root.
-3. Open **Settings → Actions → General → Workflow permissions**. Enable read and write permissions if your account policy requires it. The workflow declares only `issues: write` and `contents: read`.
-4. Open **Actions** and enable workflows if prompted.
-5. Run **Daily project promo draft → Run workflow** once to test it. Check the Issues tab for a `Promo draft: Ansuman123580/repository-name` issue.
-6. The scheduled run is daily at 09:00 IST. GitHub scheduled workflows can be delayed during high load and are based on the default branch.
+The publisher can create a **public LinkedIn post**. Do not invoke the endpoint manually with the cron authorization header unless you intend to publish. Requests without the matching `Authorization: Bearer <CRON_SECRET>` are rejected.
 
-## Approval process
+## Required Vercel environment variables
 
-1. Review the generated issue and correct all inaccurate or generic wording.
-2. Verify demo and repository links. Add a screenshot manually where possible.
-3. When ready, add the `approved` label. The guard only records the approval in a comment.
-4. Copy the reviewed draft and manually publish it on LinkedIn (or another platform).
-5. Optionally add `published` and record the published post URL in a comment.
+Set these in the Vercel project for **Production**, then redeploy:
 
-**Important:** approval is a human review checkpoint, not a social-platform publishing integration. No social tokens are requested or stored. Automatic publishing is intentionally absent until official API access and an additional explicit publishing workflow are configured.
+- `LINKEDIN_CLIENT_ID`
+- `LINKEDIN_CLIENT_SECRET`
+- `LINKEDIN_REDIRECT_URI=https://project-promo-automation.vercel.app/api/linkedin/callback`
+- `LINKEDIN_VERSION=202609` (latest version shown by LinkedIn's official versioning docs as of 9 October 2026)
+- `LINKEDIN_TOKEN_ENCRYPTION_KEY` (64 hexadecimal characters / 32 bytes)
+- `OAUTH_STATE_SECRET` (long random secret)
+- `CRON_SECRET` (long random secret; Vercel uses it to authorize cron requests)
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+- `GITHUB_USERNAME=Ansuman123580`
 
-## Limitations
+Official LinkedIn versioning documentation: https://learn.microsoft.com/en-us/linkedin/marketing/versioning
 
-- This version uses deterministic templates, not an AI API, to keep costs at ₹0.
-- It scans up to 100 repositories and creates one draft per run. If all are already drafted, it reports that no duplicate was created.
-- It uses this automation repository's Issues tab as the queue.
-- It does not fetch social analytics automatically. Track post URL, impressions, reactions, profile visits, clicks, and qualified enquiries in a simple spreadsheet at first.
-- Do not commit API tokens or secrets to files. The built-in `GITHUB_TOKEN` is supplied by GitHub Actions.
+Never commit real secrets to GitHub or share them in screenshots.
+
+## Schedules
+
+- GitHub Actions draft workflow: `30 3 * * *` = 09:00 IST.
+- Vercel LinkedIn publisher: `0 4 * * *` = 09:30 IST.
+
+Vercel cron availability and registration depend on a successful production deployment and the project's Vercel plan/configuration. Verify the Cron Jobs dashboard and function logs. A green GitHub Actions run only confirms the draft workflow, not LinkedIn publishing.
+
+## Publisher behaviour and limitations
+
+- Publishes a plain-text post linking to one eligible public repository at a time; it does not yet create a multi-image post or a carousel.
+- Skips private, forked, archived, or disabled repositories and repositories with a recorded publish key in Upstash.
+- Uses a LinkedIn access token stored encrypted in Upstash Redis.
+- LinkedIn tokens expire; this implementation does not automatically refresh them. Reconnect LinkedIn when the token expires.
+- The demo URL is derived from repository homepage/README metadata and is not currently health-checked. Verify it before relying on it.
+- If LinkedIn accepts a post but the Redis record fails, duplicate prevention may not be guaranteed on the next run.
+- The endpoint returns safe error summaries; inspect Vercel function logs for diagnostics. Do not expose secrets.
+
+## GitHub Actions draft queue
+
+The daily draft workflow scans public, non-fork repositories and creates one copy-ready issue. It avoids duplicates and marks drafts for human review. The approval-guard workflow only comments that approval was recorded; it does not publish to LinkedIn.
+
+## Security
+
+- `.env` and environment files are ignored by Git; only `.env.example` is committed.
+- Rotate any credential accidentally committed or shared.
+- Do not test the publisher by visiting its URL in a browser with authorization; a valid request can publish publicly.
