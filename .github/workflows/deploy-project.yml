@@ -9,6 +9,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/deploy-project.yml"
+      - ".github/workflows/test-linkedin-publish.yml"
 
 permissions:
   contents: read
