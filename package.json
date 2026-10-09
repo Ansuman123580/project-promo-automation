@@ -1,0 +1,9 @@
+{
+  "name": "github-project-promo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Free GitHub project promotion drafts with mandatory human approval before publishing",
+  "type": "module",
+  "scripts": { "scan": "node scripts/scan.mjs", "test": "node --test" },
+  "engines": { "node": ">=20" }
+}
