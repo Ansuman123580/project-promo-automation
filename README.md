@@ -40,10 +40,11 @@ Vercel cron availability and registration depend on a successful production depl
 ## Publisher behaviour and limitations
 
 - Publishes a plain-text post linking to one eligible public repository at a time; it does not yet create a multi-image post or a carousel.
+- It does not automatically deploy arbitrary repositories. A project must already have a reachable live demo URL in its GitHub repository homepage or README. For example, `demo-tech` currently publishes a static frontend preview; its Python backend/admin functionality is not hosted by GitHub Pages.
 - Skips private, forked, archived, or disabled repositories and repositories with a recorded publish key in Upstash.
 - Uses a LinkedIn access token stored encrypted in Upstash Redis.
 - LinkedIn tokens expire; this implementation does not automatically refresh them. Reconnect LinkedIn when the token expires.
-- The demo URL is derived from repository homepage/README metadata and is not currently health-checked. Verify it before relying on it.
+- The demo URL is derived from repository homepage/README metadata. Before publishing, the endpoint requests the URL and skips it unless it responds successfully with an HTML content type (or no content type). This checks reachability, not whether every page or feature works.
 - If LinkedIn accepts a post but the Redis record fails, duplicate prevention may not be guaranteed on the next run.
 - The endpoint returns safe error summaries; inspect Vercel function logs for diagnostics. Do not expose secrets.
 
