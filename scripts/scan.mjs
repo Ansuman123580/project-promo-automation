@@ -20,13 +20,13 @@ function clean(text = '') {
 
 function findDemoUrl(repo, readme) {
   const homepage = typeof repo.homepage === 'string' ? repo.homepage.trim() : '';
-  if (/^https?:\\/\\//i.test(homepage) && !/localhost|127\\.0\\.0\\.1/i.test(homepage)) return homepage;
+  if (/^https?:\/\//i.test(homepage) && !/localhost|127\.0\.0\.1/i.test(homepage)) return homepage;
 
-  const markdownLinks = [...readme.matchAll(/\\[[^\\]]*(?:live demo|demo|website|visit|preview)[^\\]]*\\]\\((https?:\\/\\/[^)]+)\\)/ig)].map(m => m[1]);
-  const labelledUrls = [...readme.matchAll(/(?:live demo|demo url|website|deployed at|preview)\\s*[:—-]\\s*(https?:\\/\\/[^\\s)]+)/ig)].map(m => m[1]);
+  const markdownLinks = [...readme.matchAll(/\[[^\]]*(?:live demo|demo|website|visit|preview)[^\]]*\]\((https?:\/\/[^)]+)\)/ig)].map(m => m[1]);
+  const labelledUrls = [...readme.matchAll(/(?:live demo|demo url|website|deployed at|preview)\s*[:—-]\s*(https?:\/\/[^\s)]+)/ig)].map(m => m[1]);
   const candidates = [...labelledUrls, ...markdownLinks].filter(url =>
-    /^https?:\\/\\//i.test(url) &&
-    !/localhost|127\\.0\\.0\\.1|github\\.com\\/[^/]+\\/[^/]+(?:\\/|$)/i.test(url)
+    /^https?:\/\//i.test(url) &&
+    !/localhost|127\.0\.0\.1|github\.com\/[^/]+\/[^/]+(?:\/|$)/i.test(url)
   );
   return candidates[0] || null;
 }
