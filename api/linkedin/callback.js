@@ -40,13 +40,13 @@ async function saveEncryptedToken(encryptedToken) {
   const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!redisUrl || !redisToken) throw new Error("Upstash Redis environment variables are missing.");
 
-  const response = await fetch(`${redisUrl.replace(/\/$/, "")}/set/linkedin:oauth-token`, {
+  const response = await fetch(redisUrl, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${redisToken}`,
-      "Content-Type": "text/plain"
+      "Content-Type": "application/json"
     },
-    body: encryptedToken
+    body: JSON.stringify(["SET", "linkedin:oauth-token", encryptedToken])
   });
 
   if (!response.ok) throw new Error("Encrypted token storage failed.");
