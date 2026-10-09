@@ -62,15 +62,35 @@ export default async function handler(req, res) {
 
     const owner = process.env.GITHUB_USERNAME || "Ansuman123580";
     const repos = await github(`/users/${encodeURIComponent(owner)}/repos?type=public&sort=updated&direction=desc&per_page=100`);
-    const eligible = repos.filter(r => !r.private && !r.fork && !r.archived && !r.disabled);
+    const eligible = repos.filter(r => !r.private && !r.fork && !r.archived && !r.disabled && r.full_name.toLowerCase() !== `${owner}/project-promo-automation`.toLowerCase());
     let chosen = null;
+    let readme = "";
+    let demo = null;
     for (const repo of eligible) {
       const already = await redis(["GET", `linkedin:published:${repo.full_name.toLowerCase()}`]);
-      if (!already) { chosen = repo; break; }
+      if (already) continue;
+      let candidateReadme = "";
+      try {
+        const r = await github(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo.name)}/readme`);
+        if (r.content) candidateReadme = Buffer.from(r.content, "base64").toString("utf8");
+      } catch {}
+      const candidateDemo = demoUrl(repo, candidateReadme);
+      if (!candidateDemo) continue;
+      try {
+        const check = await fetch(candidateDemo, { method: "GET", redirect: "follow", signal: AbortSignal.timeout(8000) });
+        if (!check.ok || !/^https?:$/.test(new URL(check.url).protocol)) continue;
+        const type = check.headers.get("content-type") || "";
+        if (type && !/(text\/html|application\/xhtml\+xml)/i.test(type)) continue;
+      } catch { continue; }
+      chosen = repo;
+      readme = candidateReadme;
+      demo = candidateDemo;
+      break;
     }
-    if (!chosen) return res.status(200).json({ ok: true, published: false, message: "No unpublished eligible repository found." });
+    if (!chosen) return res.status(200).json({ ok: true, published: false, message: "No unpublished repository with a reachable live demo URL found. Add a working URL to the repository homepage or README." });
 
-    let readme = "";
+    /* selected repository and its reachable demo are now verified */
+    let unusedReadme = "";
     try {
       const r = await github(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(chosen.name)}/readme`);
       if (r.content) readme = Buffer.from(r.content, "base64").toString("utf8");
