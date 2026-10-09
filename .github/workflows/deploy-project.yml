@@ -1,4 +1,4 @@
-name: Deploy next public project to Vercel # token refresh verification
+name: Deploy next public project to Vercel
 
 on:
   schedule:
@@ -76,7 +76,17 @@ jobs:
           set -euo pipefail
           test -n "$VERCEL_TOKEN" || { echo "Missing VERCEL_TOKEN repository secret"; exit 1; }
           test -n "$VERCEL_ORG_ID" || { echo "Missing VERCEL_ORG_ID repository secret"; exit 1; }
-          npx --yes vercel@latest deploy --prod --yes --name "$PROJECT_NAME" --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID" | tee /tmp/vercel-deploy.txt
+          echo "Checking Vercel token identity (token is never printed)..."
+          if ! npx --yes vercel@latest whoami --token "$VERCEL_TOKEN"; then
+            echo "::error::Vercel token authentication failed. Create a token under the same Vercel account that owns the target project, then update the VERCEL_TOKEN GitHub Actions secret."
+            exit 1
+          fi
+          echo "Checking Vercel scope..."
+          if ! npx --yes vercel@latest teams ls --token "$VERCEL_TOKEN"; then
+            echo "::error::Vercel token works but team listing failed. Check whether VERCEL_ORG_ID is actually the correct team scope, not a project ID."
+            exit 1
+          fi
+          npx --yes vercel@latest deploy --prod --yes --name "$PROJECT_NAME" --token "$VERCEL_TOKEN" | tee /tmp/vercel-deploy.txt
           URL="$(grep -Eo 'https://[a-zA-Z0-9.-]+\.vercel\.app' /tmp/vercel-deploy.txt | tail -n 1 || true)"
           if [ -z "$URL" ]; then echo "Could not extract deployment URL from Vercel output"; cat /tmp/vercel-deploy.txt; exit 1; fi
           echo "### Deployment result" >> "$GITHUB_STEP_SUMMARY"
