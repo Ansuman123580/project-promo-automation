@@ -1,0 +1,25 @@
+name: Deploy LinkedIn publisher to Vercel
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "api/linkedin/publish.js"
+      - ".github/workflows/deploy-publisher.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-publisher:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy publisher API to production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$VERCEL_TOKEN" || { echo "::error::Missing VERCEL_TOKEN"; exit 1; }
+          npx --yes vercel@latest whoami --token "$VERCEL_TOKEN"
+          npx --yes vercel@latest deploy --prod --yes --name "project-promo-automation" --scope "ansuman123580s-projects" --token "$VERCEL_TOKEN"
