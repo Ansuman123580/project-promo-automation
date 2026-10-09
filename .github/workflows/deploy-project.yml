@@ -1,0 +1,61 @@
+name: Deploy next public project to Vercel
+
+on:
+  schedule:
+    - cron: "0 2 * * *" # 07:30 UTC = 13:00 IST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-vercel-project-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Select a public website repository
+        id: pick
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: Ansuman123580
+        run: |
+          set -euo pipefail
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/users/$OWNER/repos?type=public&sort=updated&direction=desc&per_page=100" > /tmp/repos.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const repos = JSON.parse(fs.readFileSync('/tmp/repos.json','utf8'));
+          const skip = new Set(['project-promo-automation','demo-tech','backend','impress-backend-final','admin-impress','react','test-1','ansuman123580']);
+          const candidates = repos.filter(r => !r.private && !r.fork && !r.archived && !r.disabled && !skip.has(r.name.toLowerCase()));
+          if (!candidates.length) throw new Error('No eligible public repositories found');
+          const day = Math.floor(Date.now() / 86400000);
+          const repo = candidates[day % candidates.length];
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `name=${repo.name}\nurl=${repo.clone_url}\nfull_name=${repo.full_name}\n`);
+          console.log(`Selected ${repo.full_name}`);
+          NODE
+      - name: Check out selected project
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.pick.outputs.full_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: project
+      - name: Deploy project to Vercel
+        working-directory: project
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          PROJECT_NAME: ${{ steps.pick.outputs.name }}
+        run: |
+          set -euo pipefail
+          if [ ! -f index.html ] && [ ! -f package.json ]; then
+            echo "Skipping: no index.html or package.json; not a recognizable website project."
+            exit 0
+          fi
+          npx --yes vercel@latest deploy --prod --yes --name "$PROJECT_NAME" --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID" | tee /tmp/vercel-deploy.txt
+          URL="$(grep -Eo 'https://[a-zA-Z0-9.-]+\.vercel\.app' /tmp/vercel-deploy.txt | tail -n 1 || true)"
+          if [ -z "$URL" ]; then echo "Could not extract deployment URL from Vercel output"; cat /tmp/vercel-deploy.txt; exit 1; fi
+          echo "### Deployment result" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Repository: ${{ steps.pick.outputs.full_name }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Live URL: $URL" >> "$GITHUB_STEP_SUMMARY"
