@@ -1,4 +1,5 @@
 name: Test LinkedIn publisher
+# Final verification after production publisher deployment
 
 on:
   workflow_dispatch:
