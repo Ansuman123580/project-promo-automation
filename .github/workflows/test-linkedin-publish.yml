@@ -8,13 +8,17 @@ on:
         type: boolean
         required: true
         default: false
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/test-linkedin-publish.yml"
 
 permissions:
   contents: read
 
 jobs:
   test-publisher:
-    if: ${{ inputs.publish == true }}
+    if: ${{ github.event_name == 'push' || inputs.publish == true }}
     runs-on: ubuntu-latest
     steps:
       - name: Call protected publisher
