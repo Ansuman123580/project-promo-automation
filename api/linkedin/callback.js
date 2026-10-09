@@ -126,7 +126,7 @@ export default async function handler(req, res) {
     }), process.env.LINKEDIN_TOKEN_ENCRYPTION_KEY);
 
     await saveEncryptedToken(encrypted);
-    return res.status(200).send(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>LinkedIn connected</title><body style="font:16px system-ui;max-width:640px;margin:12vh auto;padding:24px;background:#0b1020;color:#f5f7ff"><h1>LinkedIn authorization successful</h1><p>Your access token and member profile reference were encrypted before storage. No token or member identifier is displayed on this page.</p><p>LinkedIn identity is connected. Automatic publishing still needs its publishing workflow implemented and tested before it can post.</p></body></html>`);
+    return res.status(200).send(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>LinkedIn connected</title><body style="font:16px system-ui;max-width:640px;margin:12vh auto;padding:24px;background:#0b1020;color:#f5f7ff"><h1>LinkedIn authorization successful</h1><p>Your access token and member profile reference were encrypted before storage. No token or member identifier is displayed on this page.</p><p>LinkedIn identity is connected. Scheduled publishing is configured in the repository, but the first successful LinkedIn post still needs to be confirmed in Vercel function logs and on LinkedIn.</p></body></html>`);
   } catch (err) {
     console.error("LinkedIn OAuth callback error:", err instanceof Error ? err.message : "unknown error");
     return res.status(500).send("Could not securely save the LinkedIn authorization. Check Vercel and Upstash configuration, then retry.");
